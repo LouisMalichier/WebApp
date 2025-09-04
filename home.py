@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import date
+import pandas as pd
 
 st.set_page_config(page_title="Transformation Agile", layout="wide")
 
@@ -10,14 +11,52 @@ pages = {
     "Enableur technologiques": "Data, outillage et plateforme",
     "Budget & Mesure": "KPIs, OKRs, tableaux de bord",
     "Leadership et talents": "Compétences, staffing, coaching",
-    "Culture et communication": "Valeurs, rituels, reconnaice",
+    "Culture et communication": "Valeurs, rituels, reconnaissance",
 }
+
+# --- CSV path ---
+CSV_PATH = "tasks.csv"  # CSV local sur le serveur
+
+
+# --- Fonctions pour CSV ---
+def read_tasks():
+    try:
+        df = pd.read_csv(CSV_PATH)
+        tasks_dict = {}
+        for page in pages.keys():
+            page_tasks = df[df["page"] == page].to_dict(orient="records")
+            for t in page_tasks:
+                t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
+                t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
+            tasks_dict[page] = page_tasks
+        return tasks_dict
+    except FileNotFoundError:
+        return {page: [] for page in pages.keys()}
+
+
+def write_tasks(tasks_dict):
+    all_tasks = []
+    for page, tasks in tasks_dict.items():
+        for t in tasks:
+            all_tasks.append(
+                {
+                    "page": page,
+                    "nom": t["nom"],
+                    "avancement": t["avancement"],
+                    "pilote": t["pilote"],
+                    "date_debut": t["date_debut"],
+                    "date_echeance": t["date_echeance"],
+                }
+            )
+    df = pd.DataFrame(all_tasks)
+    df.to_csv(CSV_PATH, index=False)
+
 
 # --- Session state ---
 if "pilotes" not in st.session_state:
     st.session_state.pilotes = ["DSI", "DATA", "PO", "DS"]
 if "tasks" not in st.session_state:
-    st.session_state.tasks = {page: [] for page in pages.keys()}
+    st.session_state.tasks = read_tasks()
 
 
 # --- Fonctions ---
@@ -79,6 +118,7 @@ if selection != "Transformation AGILE":
                         "date_echeance": date_echeance_tache,
                     },
                 )
+                write_tasks(st.session_state.tasks)
             else:
                 st.warning("Veuillez entrer un nom de tâche.")
 
@@ -143,6 +183,7 @@ if selection != "Transformation AGILE":
         if not supprimer:
             updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
+    write_tasks(st.session_state.tasks)
 
 # --- Page Transformation AGILE ---
 else:
@@ -201,7 +242,7 @@ else:
         if p != "Transformation AGILE"
         for t in tasks
     ]
-    avg_progress = int(sum(all_tasks) / len(pages) - 1) if all_tasks else 0
+    avg_progress = int(sum(all_tasks) / (len(pages) - 1)) if all_tasks else 0
 
     st.subheader(f"Avancement global : {avg_progress}%")
     st.progress(avg_progress)
