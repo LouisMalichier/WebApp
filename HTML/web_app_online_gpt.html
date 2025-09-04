@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modèle Opérationnel – Initiatives</title>
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-700: #047857;
+      --bg: #f4fbf7;
+      --text: #0f172a;
+      --muted: #64748b;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --pill: #e2e8f0;
+      --shadow: 0 10px 20px rgba(2, 6, 23, .06), 0 2px 6px rgba(2, 6, 23, .05);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px
+    }
+
+    /* Rectangle fin en haut */
+    .thin-bar {
+      background: #fff;
+      border: 2px solid var(--primary);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 10px 24px;
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .thin-bar-sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    /* Maison graphique */
+    .house-graphic {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .roof-triangle {
+      width: 0;
+      height: 0;
+      border-left: 90px solid transparent;
+      border-right: 90px solid transparent;
+      border-bottom: 60px solid var(--primary);
+      margin-bottom: -6px;
+      position: relative;
+    }
+
+    .vision-block {
+      background: #f8fffb;
+      border: 2px solid var(--primary);
+      border-radius: 0 0 20px 20px;
+      padding: 18px 32px 14px 32px;
+      text-align: center;
+      min-width: 320px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .vision-block h2 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+      color: var(--primary-700);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .vision-block p {
+      margin: 0;
+      font-size: 16px;
+      color: #166534;
+      font-weight: 500;
+    }
+
+    /* Grille des 5 boîtes */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 900px) {
+      .matrix-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .matrix-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-matrix {
+      background: var(--card);
+      border: 2px solid var(--primary);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 18px 14px;
+      cursor: pointer;
+      text-align: center;
+      transition: .2s;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-matrix:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-700);
+    }
+
+    .card-matrix .icon {
+      margin-bottom: 8px;
+      background: #f0fdf4;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+    }
+
+    .card-matrix .icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--primary);
+    }
+
+    .card-matrix .title {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .card-matrix .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Bloc Execution */
+    .execution-block {
+      background: #e0f2fe;
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 28px 32px;
+      margin-top: 32px;
+      text-align: center;
+      width: 100%;
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e3a8a;
+      letter-spacing: 1px;
+    }
+
+    .execution-block .muted {
+      display: block;
+      font-size: 15px;
+      color: #2563eb;
+      font-weight: 400;
+      margin-top: 8px;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 6px 0 2px;
+      text-align: center;
+      font-size: 24px
+    }
+
+    p.lead {
+      text-align: center;
+      margin: 0;
+      color: var(--muted)
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px
+    }
+
+    @media (min-width: 720px) {
+      .grid.col-2 {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .grid.col-3 {
+        grid-template-columns: repeat(3, 1fr)
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: .2s;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .card:hover {
+      transform: translateY(-2px)
+    }
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      background: #f0fdf4;
+      flex: 0 0 44px;
+    }
+
+    .icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--primary)
+    }
+
+    .title {
+      font-weight: 600
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px
+    }
+
+    .hidden {
+      display: none
+    }
+
+    .back {
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: underline
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 6px 0 18px
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 14px;
+      cursor: pointer
+    }
+
+    .btn.secondary {
+      background: #eef2ff;
+      color: #1e293b
+    }
+
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--pill);
+      font-size: 12px;
+      margin-left: 6px;
+      border: 1px solid var(--border)
+    }
+
+    .pill.success {
+      background: #dcfce7;
+      border-color: #bbf7d0;
+      color: #166534
+    }
+
+    .pill.warn {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: #9a3412
+    }
+
+    .pill.risk {
+      background: #ffe4e6;
+      border-color: #fecdd3;
+      color: #9f1239
+    }
+
+    .list {
+      display: grid;
+      gap: 12px
+    }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow)
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px
+    }
+
+    .meta {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .progress {
+      height: 8px;
+      background: #eef2f7;
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .progress>div {
+      height: 8px;
+      background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+      width: 0%
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .grid-form {
+      display: grid;
+      gap: 12px
+    }
+
+    @media (min-width: 720px) {
+      .grid-form {
+        grid-template-columns: 2fr repeat(3, 1fr) 1fr
+      }
+    }
+
+    input[type=text],
+    input[type=date],
+    select {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 14px;
+      width: 100%
+    }
+
+    input[type=range] {
+      width: 100%
+    }
+
+    .danger {
+      color: #be123c;
+      cursor: pointer
+    }
+
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .hr {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 16px 0
+    }
+
+    /* Styles pour la section VISION */
+    .vision-matrix {
+      background: #ecfdf5;
+      border: 2px solid #059669;
+      border-radius: 18px;
+      padding: 24px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.08);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .vision-matrix h2 {
+      text-align: center;
+      color: #047857;
+      font-size: 28px;
+      margin: 0 0 12px 0;
+      letter-spacing: 1px;
+    }
+
+    .vision-matrix div {
+      text-align: center;
+      font-size: 18px;
+      color: #166534;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Rectangle fin en haut -->
+    <div class="thin-bar">
+      Modèle opérationnel
+      <div class="thin-bar-sub">
+        Cliquez sur une boîte pour voir les initiatives et leur avancement.
+      </div>
+    </div>
+    <!-- Maison graphique -->
+    <div class="house-graphic">
+      <div class="roof-triangle"></div>
+      <div class="vision-block">
+        <h2>VISION</h2>
+        <p>Le mode de fonctionnement agile permet d'aller plus vite et plus loin.</p>
+      </div>
+    </div>
+    <!-- Grille des 5 boîtes -->
+    <div class="matrix-grid">
+      <div class="card-matrix" data-cat="organisation">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="6" height="6" rx="1" stroke-width="1.5" />
+            <rect x="15" y="3" width="6" height="6" rx="1" stroke-width="1.5" />
+            <path d="M6 9v3h12V9" stroke-width="1.5" />
+          </svg></div>
+        <div class="title">Organisation & processus</div>
+        <div class="muted">Orgchart, méthodes de travail</div>
+      </div>
+      <div class="card-matrix" data-cat="enableurs">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+            <rect x="7" y="7" width="10" height="10" rx="2" stroke-width="1.5" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg></div>
+        <div class="title">Enableurs technologiques</div>
+        <div class="muted">Data, outillage, plateformes</div>
+      </div>
+      <div class="card-matrix" data-cat="budget">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 20V4M20 20H4M8 16V8M12 20v-6M16 12v8" stroke-width="1.5" />
+          </svg></div>
+        <div class="title">Budget & Mesure</div>
+        <div class="muted">KPIs, OKRs, tableaux de bord</div>
+      </div>
+      <div class="card-matrix" data-cat="leadership">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+            <circle cx="8" cy="7" r="3" stroke-width="1.5" />
+            <circle cx="16" cy="7" r="3" stroke-width="1.5" />
+          </svg></div>
+        <div class="title">Leadership & talents</div>
+        <div class="muted">Compétences, staffing, coaching</div>
+      </div>
+      <div class="card-matrix" data-cat="culture">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3c3 3 3 6 0 9-3 3-3 6 0 9" stroke-width="1.5" />
+          </svg></div>
+        <div class="title">Culture & communication</div>
+        <div class="muted">Valeurs, rituels, reconnaissance</div>
+      </div>
+    </div>
+    <!-- Bloc Execution -->
+    <div class="execution-block card-matrix" data-cat="execution">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h10l2 3h4M4 17h10l2-3h4" stroke-width="1.5" />
+        </svg></div>
+      <div class="title">Exécution de la transformation</div>
+      <span class="muted">Pilotage des initiatives</span>
+    </div>
+
+    <!-- CATEGORY PAGE -->
+    <div id="categoryPage" class="hidden">
+      <div class="toolbar">
+        <span class="back" id="backBtn">← Retour</span>
+        <div>
+          <button class="btn secondary" id="exportBtn">Exporter JSON</button>
+          <button class="btn" id="resetBtn">Réinitialiser</button>
+        </div>
+      </div>
+      <h2 id="catTitle"></h2>
+      <p id="catBlurb" class="muted"></p>
+      <div class="hr"></div>
+      <h3>Ajouter une initiative</h3>
+      <form id="addForm" class="grid-form">
+        <div class="field"><label>Nom</label><input type="text" name="name" required></div>
+        <div class="field"><label>Pilote</label><input type="text" name="owner"></div>
+        <div class="field"><label>Échéance</label><input type="date" name="due"></div>
+        <div class="field"><label>Statut</label>
+          <select name="status">
+            <option>À démarrer</option>
+            <option>En cours</option>
+            <option>À risque</option>
+            <option>Terminé</option>
+          </select>
+        </div>
+        <div class="field"><button class="btn" type="submit">Ajouter</button></div>
+      </form>
+      <div class="hr"></div>
+      <h3>Initiatives</h3>
+      <div id="items" class="list"></div>
+    </div>
+
+    <footer>Les données sont stockées localement dans votre navigateur.</footer>
+  </div>
+
+  <script>
+    const CATEGORIES = [
+      { id: "vision", title: "Vision", blurb: "Purpose, strategy and priorities" },
+      { id: "enableurs", title: "Enableurs technologiques", blurb: "Data, outillage, plateformes" },
+      { id: "execution", title: "Exécution de la transformation", blurb: "Pilotage des initiatives" },
+      { id: "budget", title: "Budget & Mesure", blurb: "KPIs, OKRs, tableaux de bord" },
+      { id: "leadership", title: "Leadership & talents", blurb: "Compétences, staffing, coaching" },
+      { id: "culture", title: "Culture & communication", blurb: "Valeurs, rituels, reconnaissance" },
+      { id: "organisation", title: "Organisation & processus", blurb: "Orgchart, méthodes de travail" },
+    ];
+
+    const SEED = {
+      vision: [{ id: "v1", name: "Définir la vision 2026", owner: "PMO", due: "2025-12-31", status: "En cours", progress: 60 }],
+      enableurs: [{ id: "e1", name: "Choisir un outil PPM", owner: "DSI", due: "2025-09-01", status: "En cours", progress: 45 }],
+      execution: [{ id: "ex1", name: "Suivi des initiatives stratégiques", owner: "PMO", due: "2025-11-01", status: "À démarrer", progress: 0 }],
+      budget: [{ id: "b1", name: "Déployer OKRs trimestriels", owner: "Finance", due: "2025-10-15", status: "À risque", progress: 35 }],
+      leadership: [{ id: "l1", name: "Former 50 managers au coaching", owner: "Académie", due: "2025-11-01", status: "En cours", progress: 55 }],
+      culture: [{ id: "c1", name: "Programme ambassadeurs", owner: "Com interne", due: "2025-07-15", status: "Terminé", progress: 100 }],
+      organisation: [{ id: "o1", name: "Cartographier 20 processus clés", owner: "Qualité", due: "2025-08-31", status: "En cours", progress: 70 }],
+    };
+
+    const LS_KEY = "operating-model-v2";
+    function loadData() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || SEED; } catch (e) { return SEED; } }
+    function saveData(d) { try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) { } }
+    let DATA = loadData();
+
+    const homeEl = document.getElementById('home');
+    const catEl = document.getElementById('categoryPage');
+    const backBtn = document.getElementById('backBtn');
+    backBtn.addEventListener('click', () => goHome());
+
+    // Redirige vers la page HTML correspondante au clic
+    const PAGE_MAP = {
+      organisation: "organisation.html",
+      enableurs: "enableurs.html",
+      budget: "budget.html",
+      leadership: "leadership.html",
+      culture: "culture.html",
+      execution: "execution.html"
+    };
+    document.querySelectorAll('.card-matrix[data-cat], .execution-block[data-cat]').forEach(c => {
+      c.addEventListener('click', () => {
+        const page = PAGE_MAP[c.dataset.cat];
+        if (page) {
+          window.location.href = page;
+        }
+      });
+    });
+
+    function goHome() { catEl.classList.add('hidden'); homeEl.classList.remove('hidden'); history.pushState({}, "", "#/"); }
+    function openCategory(id, fromHistory) {
+      const cat = CATEGORIES.find(c => c.id === id);
+      if (!cat) return;
+
+      // Cas spécial pour Vision
+      if (id === "vision") {
+        homeEl.classList.add('hidden');
+        catEl.classList.remove('hidden');
+
+        catTitle.textContent = "Vision";
+        catBlurb.textContent = "Le mode agile permet d'aller plus vite et plus loin.";
+
+        // On masque tout sauf le texte
+        items.innerHTML = "";
+        addForm.style.display = "none";
+        resetBtn.style.display = "none";
+        exportBtn.style.display = "none";
+
+        // On cache aussi les titres "Ajouter une initiative" et "Initiatives"
+        document.querySelector('h3:nth-of-type(1)').style.display = "none";
+        document.querySelector('h3:nth-of-type(2)').style.display = "none";
+
+        if (!fromHistory) history.pushState({}, "", "#/" + id);
+        return;
+      }
+
+      // Comportement normal pour les autres catégories
+      currentCatId = cat.id;
+      catTitle.textContent = cat.title;
+      catBlurb.textContent = cat.blurb;
+      renderList();
+
+      addForm.style.display = "grid";
+      resetBtn.style.display = "inline-block";
+      exportBtn.style.display = "inline-block";
+      document.querySelector('h3:nth-of-type(1)').style.display = "block";
+      document.querySelector('h3:nth-of-type(2)').style.display = "block";
+
+      addForm.reset();
+      homeEl.classList.add('hidden');
+      catEl.classList.remove('hidden');
+      if (!fromHistory) history.pushState({}, "", "#/" + id);
+    }
+
+
+
+    const catTitle = document.getElementById('catTitle');
+    const catBlurb = document.getElementById('catBlurb');
+    const items = document.getElementById('items');
+    const addForm = document.getElementById('addForm');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    let currentCatId = null;
+
+    function statusPill(status) {
+      const cls = status === "Terminé" ? "pill success" : status === "À risque" ? "pill risk" : status === "En cours" ? "pill warn" : "pill";
+      return `<span class="${cls}">${status}</span>`;
+    }
+
+    function renderList() {
+      const list = DATA[currentCatId] || [];
+      if (list.length === 0) { items.innerHTML = `<div class="muted">Aucune initiative pour le moment.</div>`; return; }
+      items.innerHTML = "";
+      list.forEach(it => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'item';
+        wrapper.innerHTML = `
+          <div class="row">
+            <div style="min-width:0">
+              <div style="display:flex;align-items:center;gap:6px">
+                <strong>${it.name}</strong> ${statusPill(it.status)}
+              </div>
+              <div class="meta"> ${it.owner ? '👤 ' + it.owner + ' • ' : ''} ${it.due ? '📅 ' + it.due : ''}</div>
+            </div>
+            <div class="danger" data-del="${it.id}">Supprimer</div>
+          </div>
+          <div style="margin-top:10px" class="progress"><div style="width:${it.progress || 0}%"></div></div>
+          <div style="margin-top:10px;display:grid;gap:10px;grid-template-columns:1fr 1fr 1fr">
+            <div><label class="meta">Progression (%)</label><input type="range" min="0" max="100" value="${it.progress || 0}" data-range="${it.id}"></div>
+            <div><label class="meta">Statut</label>
+              <select data-status="${it.id}">${["À démarrer", "En cours", "À risque", "Terminé"].map(s => `<option ${s === it.status ? 'selected' : ''}>${s}</option>`).join("")}</select>
+            </div>
+            <div><label class="meta">Échéance</label><input type="date" value="${it.due || ''}" data-due="${it.id}"></div>
+          </div>
+        `;
+        wrapper.querySelector(`[data-range="${it.id}"]`).addEventListener('input', (e) => { update(it.id, { progress: Number(e.target.value) }); });
+        wrapper.querySelector(`[data-status="${it.id}"]`).addEventListener('change', (e) => { update(it.id, { status: e.target.value }); });
+        wrapper.querySelector(`[data-due="${it.id}"]`).addEventListener('change', (e) => { update(it.id, { due: e.target.value }); });
+        wrapper.querySelector(`[data-del="${it.id}"]`).addEventListener('click', () => { removeItem(it.id); });
+        items.appendChild(wrapper);
+      });
+    }
+
+    function update(id, patch) {
+      DATA[currentCatId] = (DATA[currentCatId] || []).map(it => it.id === id ? { ...it, ...patch } : it);
+      saveData(DATA); renderList();
+    }
+    function removeItem(id) {
+      if (!confirm("Supprimer cette initiative ?")) return;
+      DATA[currentCatId] = (DATA[currentCatId] || []).filter(it => it.id !== id);
+      saveData(DATA); renderList();
+    }
+
+    addForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(addForm);
+      const item = { id: Math.random().toString(36).slice(2, 9), name: fd.get('name'), owner: fd.get('owner'), due: fd.get('due'), status: fd.get('status'), progress: 0 };
+      if (!item.name) return;
+      DATA[currentCatId] = [...(DATA[currentCatId] || []), item];
+      saveData(DATA); addForm.reset(); renderList();
+    });
+
+    resetBtn.addEventListener('click', () => { if (!confirm("Réinitialiser ?")) return; DATA[currentCatId] = SEED[currentCatId] || []; saveData(DATA); renderList(); });
+    exportBtn.addEventListener('click', () => { const json = JSON.stringify(DATA[currentCatId] || [], null, 2); const blob = new Blob([json], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = currentCatId + '-initiatives.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); });
+
+    const initial = location.hash.replace("#/", ""); if (initial) { openCategory(initial, true); } else { goHome(); }
+  </script>
+</body>
+
+</html>

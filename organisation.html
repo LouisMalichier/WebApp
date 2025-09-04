@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Organisation & processus</title>
+    <link rel="stylesheet" href="web_app_online_gpt.html">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Organisation & processus</h1>
+        <p class="muted">Orgchart, méthodes de travail</p>
+        <!-- Ajoute un bouton retour vers la page principale -->
+        <button class="btn" style="margin-bottom: 18px;" onclick="window.location.href='web_app_online_gpt.html'">←
+            Retour</button>
+        <div id="items"></div>
+        <script>
+            const DATA = JSON.parse(localStorage.getItem("operating-model-v2") || "{}");
+            const items = document.getElementById('items');
+            function statusPill(status) {
+                const cls = status === "Terminé" ? "pill success" : status === "À risque" ? "pill risk" : status === "En cours" ? "pill warn" : "pill";
+                return `<span class="${cls}">${status}</span>`;
+            }
+            function renderList() {
+                const list = DATA.organisation || [];
+                if (list.length === 0) { items.innerHTML = `<div class="muted">Aucune initiative pour le moment.</div>`; return; }
+                items.innerHTML = "";
+                list.forEach(it => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'item';
+                    wrapper.innerHTML = `
+            <div class="row">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <strong>${it.name}</strong> ${statusPill(it.status)}
+                </div>
+                <div class="meta"> ${it.owner ? '👤 ' + it.owner + ' • ' : ''} ${it.due ? '📅 ' + it.due : ''}</div>
+              </div>
+            </div>
+            <div style="margin-top:10px" class="progress"><div style="width:${it.progress || 0}%"></div></div>
+          `;
+                    items.appendChild(wrapper);
+                });
+            }
+            renderList();
+        </script>
+    </div>
+</body>
+
+</html>

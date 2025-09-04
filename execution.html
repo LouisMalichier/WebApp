@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Exécution de la transformation</title>
+    <link rel="stylesheet" href="web_app_online_gpt.html">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Exécution de la transformation</h1>
+        <p class="muted">Pilotage des initiatives</p>
+        <div id="items"></div>
+        <script>
+            // ...existing code...
+            // Ajoute un bouton retour vers la page principale
+            const backBtn = document.createElement('button');
+            backBtn.textContent = "← Retour";
+            backBtn.className = "btn";
+            backBtn.style.marginBottom = "18px";
+            backBtn.onclick = () => { window.location.href = "web_app_online_gpt.html"; };
+            document.querySelector('.container').insertBefore(backBtn, document.getElementById('items'));
+            // ...existing code...
+        </script>
+    </div>
+</body>
+
+</html>
