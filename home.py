@@ -157,21 +157,21 @@ else:
     with col1:
         bloc_progression(
             "Organisation et processus",
-            "Streamlit/icons/org.png",
+            "icons/org.png",
             "Organisation et processus",
             "Orgchart, méthodes de travail, standardisation",
         )
     with col2:
         bloc_progression(
             "Enableur technologiques",
-            "Streamlit/icons/tech.png",
+            "icons/tech.png",
             "Enableur technologiques",
             "Data, outillage et plateforme",
         )
     with col3:
         bloc_progression(
             "Budget & Mesure",
-            "Streamlit/icons/budget.png",
+            "icons/budget.png",
             "Budget & Mesure",
             "KPIs, OKRs, tableaux de bord",
         )
@@ -180,14 +180,14 @@ else:
     with col4:
         bloc_progression(
             "Leadership et talents",
-            "Streamlit/icons/leader.png",
+            "icons/leader.png",
             "Leadership et talents",
             "Compétences, staffing, coaching",
         )
     with col5:
         bloc_progression(
             "Culture et communication",
-            "Streamlit/icons/culture.png",
+            "icons/culture.png",
             "Culture et communication",
             "Valeurs, rituels, reconnaissance",
         )
