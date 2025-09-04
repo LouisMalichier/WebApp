@@ -4,15 +4,23 @@ import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, db
 import uuid
+import json
+import tempfile
 
 # --- Firebase init ---
-cred = credentials.Certificate("firebase_credentials.json")
+# Charger les credentials depuis st.secrets
+cred_dict = json.loads(st.secrets["firebase"]["credentials"])
+
+# Créer un fichier temporaire pour Firebase
+with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
+    json.dump(cred_dict, f)
+    temp_path = f.name
+
+# Initialiser Firebase une seule fois
 if not firebase_admin._apps:
+    cred = credentials.Certificate(temp_path)
     firebase_admin.initialize_app(
-        cred,
-        {
-            "databaseURL": "https://webappfdj-default-rtdb.europe-west1.firebasedatabase.app/"  # remplace <TON-PROJET> par le nom de ton projet
-        },
+        cred, {"databaseURL": "https://WebAppFDJ.firebaseio.com/"}
     )
 
 
