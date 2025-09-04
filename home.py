@@ -7,6 +7,8 @@ import uuid
 import json
 import tempfile
 
+print("hello world")
+
 # --- Firebase init ---
 # Charger les credentials depuis st.secrets
 cred_dict = json.loads(st.secrets["firebase"]["credentials"])
