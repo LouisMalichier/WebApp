@@ -4,25 +4,15 @@ import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, db
 import uuid
-import json
-import tempfile
-
-print("hello world")
 
 # --- Firebase init ---
-# Charger les credentials depuis st.secrets
-cred_dict = json.loads(st.secrets["firebase"]["credentials"])
-
-# Créer un fichier temporaire pour Firebase
-with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
-    json.dump(cred_dict, f)
-    temp_path = f.name
-
-# Initialiser Firebase une seule fois
+cred = credentials.Certificate("firebase_credentials.json")
 if not firebase_admin._apps:
-    cred = credentials.Certificate(temp_path)
     firebase_admin.initialize_app(
-        cred, {"databaseURL": "https://WebAppFDJ.firebaseio.com/"}
+        cred,
+        {
+            "databaseURL": "https://webappfdj-default-rtdb.europe-west1.firebasedatabase.app/"  # remplace <TON-PROJET> par le nom de ton projet
+        },
     )
 
 
@@ -72,8 +62,6 @@ def write_tasks_firebase(tasks_dict):
     for page, tasks in tasks_dict.items():
         for t in tasks:
             if "id" not in t:
-                import uuid
-
                 t["id"] = str(uuid.uuid4())
             all_tasks[t["id"]] = {
                 "page": page,
@@ -84,11 +72,9 @@ def write_tasks_firebase(tasks_dict):
                 "date_echeance": t["date_echeance"].strftime("%Y-%m-%d"),
             }
 
-    if all_tasks:  # <-- vérifier que le dict n'est pas vide
-        ref.update(all_tasks)
-        print("Tâche mise à jour")
-    else:
-        print("Aucune tâche à mettre à jour")
+    # Écrase tout pour supprimer les tâches supprimées
+    ref.set(all_tasks)
+    print("Firebase mis à jour avec toutes les tâches existantes")
 
 
 # --- Session state ---
@@ -219,10 +205,10 @@ if selection != "Transformation AGILE":
             st.write("")
             if st.button("Supprimer", key=f"del_{selection}_{idx}"):
                 supprimer = True
-        if not supprimer:
-            updated_tasks.append(tache)
+            if not supprimer:
+                updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
-    write_tasks_firebase(st.session_state.tasks)
+    write_tasks_firebase(st.session_state.tasks)  # Mise à jour Firebase
 
 
 # --- Page Transformation AGILE ---
