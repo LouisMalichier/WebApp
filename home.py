@@ -3,10 +3,11 @@ from datetime import date
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, db
+import uuid
 
 # --- Firebase init ---
 cred = credentials.Certificate("firebase_credentials.json")
-if not firebase_admin._apps:  # <-- vérifie si aucune app n'est initialisée
+if not firebase_admin._apps:
     firebase_admin.initialize_app(
         cred,
         {
@@ -33,25 +34,38 @@ CSV_PATH = "tasks.csv"  # CSV local sur le serveur
 
 # --- Fonctions pour CSV ---
 def read_tasks_firebase():
-    ref = db.reference("tasks")  # référence vers la racine 'tasks'
-    data = ref.get() or {}  # renvoie un dict ou {}
+    ref = db.reference("tasks")
+    data = ref.get()
 
-    # organiser par pages
+    # Si vide, initialiser un dict vide
+    if not data or not isinstance(data, dict):
+        data = {}
+
     tasks_dict = {page: [] for page in pages.keys()}
+
     for key, t in data.items():
-        t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
-        t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
-        tasks_dict[t["page"]].append(t)
+        # vérification que t est bien un dict avec les clés attendues
+        if isinstance(t, dict) and "page" in t:
+            t.setdefault("date_debut", str(date.today()))
+            t.setdefault("date_echeance", str(date.today()))
+            t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
+            t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
+            tasks_dict[t["page"]].append(t)
+
     return tasks_dict
 
 
 def write_tasks_firebase(tasks_dict):
     ref = db.reference("tasks")
     all_tasks = {}
-    task_id = 0
+
     for page, tasks in tasks_dict.items():
         for t in tasks:
-            all_tasks[str(task_id)] = {
+            if "id" not in t:
+                import uuid
+
+                t["id"] = str(uuid.uuid4())
+            all_tasks[t["id"]] = {
                 "page": page,
                 "nom": t["nom"],
                 "avancement": t["avancement"],
@@ -59,8 +73,12 @@ def write_tasks_firebase(tasks_dict):
                 "date_debut": t["date_debut"].strftime("%Y-%m-%d"),
                 "date_echeance": t["date_echeance"].strftime("%Y-%m-%d"),
             }
-            task_id += 1
-    ref.set(all_tasks)  # écrase toutes les données
+
+    if all_tasks:  # <-- vérifier que le dict n'est pas vide
+        ref.update(all_tasks)
+        print("Tâche mise à jour")
+    else:
+        print("Aucune tâche à mettre à jour")
 
 
 # --- Session state ---
