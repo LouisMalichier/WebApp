@@ -50,7 +50,6 @@ pages = {
 }
 
 
-# --- Lire les tâches depuis PostgreSQL ---
 def read_tasks_pg():
     conn = get_connection()
     cur = conn.cursor()
@@ -63,11 +62,14 @@ def read_tasks_pg():
 
     tasks_dict = {page: [] for page in pages.keys()}
     for r in rows:
-        subtasks = json.loads(r[7]) if r[7] else []
-        # Conversion des dates
+        subtasks = r[7] or []  # déjà un dict/list, pas besoin de json.loads
+        # Conversion des dates si nécessaire
         for s in subtasks:
-            s["date_debut"] = s.get("date_debut", date.today())
-            s["date_echeance"] = s.get("date_echeance", date.today())
+            if isinstance(s.get("date_debut"), str):
+                s["date_debut"] = date.fromisoformat(s["date_debut"])
+            if isinstance(s.get("date_echeance"), str):
+                s["date_echeance"] = date.fromisoformat(s["date_echeance"])
+
         tasks_dict[r[1]].append(
             {
                 "id": str(r[0]),
