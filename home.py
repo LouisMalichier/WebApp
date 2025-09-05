@@ -380,14 +380,14 @@ if selection != "Transformation AGILE":
                     "subtasks": [],
                 },
             )
-            write_tasks()
+            write_tasks_pg(st.session_state.tasks)
 
     updated_tasks = []
     for idx, tache in enumerate(st.session_state.tasks[selection]):
         if render_task(tache, selection, idx):
             updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
-    write_tasks()
+    write_tasks_pg(st.session_state.tasks)
 else:
     st.markdown("<h3 style='text-align: center;'>🏛️ VISION</h3>", unsafe_allow_html=True)
     st.markdown(
