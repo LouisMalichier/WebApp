@@ -4,16 +4,39 @@ import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, db
 import uuid
+import psycopg2
+import os
 
-# --- Firebase init ---
-cred = credentials.Certificate("firebase_credentials.json")
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(
-        cred,
-        {
-            "databaseURL": "https://webappfdj-default-rtdb.europe-west1.firebasedatabase.app/"  # remplace <TON-PROJET> par le nom de ton projet
-        },
+
+def get_connection():
+    return psycopg2.connect(
+        os.environ[
+            "postgresql://webappbdd_v2_user:gPOCiOFQnJ09tgLI6dJ46v1mZ6e9AVWv@dpg-d2t9143uibrs73eih1d0-a/webappbdd_v2"
+        ],
+        sslmode="require",
     )
+
+
+# Création de la table si elle n’existe pas
+def init_db():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+    CREATE TABLE IF NOT EXISTS tasks (
+        id UUID PRIMARY KEY,
+        page TEXT NOT NULL,
+        nom TEXT NOT NULL,
+        avancement INT NOT NULL,
+        pilote TEXT NOT NULL,
+        date_debut DATE NOT NULL,
+        date_echeance DATE NOT NULL
+    );
+    """
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 st.set_page_config(page_title="Transformation Agile", layout="wide")
@@ -28,60 +51,69 @@ pages = {
     "Culture et communication": "Valeurs, rituels, reconnaissance",
 }
 
-# --- CSV path ---
-CSV_PATH = "tasks.csv"  # CSV local sur le serveur
 
-
-# --- Fonctions pour CSV ---
-def read_tasks_firebase():
-    ref = db.reference("tasks")
-    data = ref.get()
-
-    # Si vide, initialiser un dict vide
-    if not data or not isinstance(data, dict):
-        data = {}
+# --- Fonctions pour PG ---
+def read_tasks_pg(pages):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, page, nom, avancement, pilote, date_debut, date_echeance FROM tasks;"
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
 
     tasks_dict = {page: [] for page in pages.keys()}
-
-    for key, t in data.items():
-        # vérification que t est bien un dict avec les clés attendues
-        if isinstance(t, dict) and "page" in t:
-            t.setdefault("date_debut", str(date.today()))
-            t.setdefault("date_echeance", str(date.today()))
-            t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
-            t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
-            tasks_dict[t["page"]].append(t)
-
+    for r in rows:
+        tasks_dict[r[1]].append(
+            {
+                "id": str(r[0]),
+                "page": r[1],
+                "nom": r[2],
+                "avancement": r[3],
+                "pilote": r[4],
+                "date_debut": r[5],
+                "date_echeance": r[6],
+            }
+        )
     return tasks_dict
 
 
-def write_tasks_firebase(tasks_dict):
-    ref = db.reference("tasks")
-    all_tasks = {}
-
+def write_tasks_pg(tasks_dict):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM tasks;")  # simple : on réécrit tout
     for page, tasks in tasks_dict.items():
         for t in tasks:
             if "id" not in t:
                 t["id"] = str(uuid.uuid4())
-            all_tasks[t["id"]] = {
-                "page": page,
-                "nom": t["nom"],
-                "avancement": t["avancement"],
-                "pilote": t["pilote"],
-                "date_debut": t["date_debut"].strftime("%Y-%m-%d"),
-                "date_echeance": t["date_echeance"].strftime("%Y-%m-%d"),
-            }
+            cur.execute(
+                """
+                INSERT INTO tasks (id, page, nom, avancement, pilote, date_debut, date_echeance)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+                (
+                    t["id"],
+                    page,
+                    t["nom"],
+                    t["avancement"],
+                    t["pilote"],
+                    t["date_debut"],
+                    t["date_echeance"],
+                ),
+            )
+    conn.commit()
+    cur.close()
+    conn.close()
 
-    # Écrase tout pour supprimer les tâches supprimées
-    ref.set(all_tasks)
-    print("Firebase mis à jour avec toutes les tâches existantes")
 
+init_db()
 
 # --- Session state ---
 if "pilotes" not in st.session_state:
     st.session_state.pilotes = ["DSI", "DATA", "PO", "DS"]
 if "tasks" not in st.session_state:
-    st.session_state.tasks = read_tasks_firebase()
+    st.session_state.tasks = read_tasks_pg()
 
 
 # --- Fonctions ---
@@ -143,7 +175,7 @@ if selection != "Transformation AGILE":
                         "date_echeance": date_echeance_tache,
                     },
                 )
-                write_tasks_firebase(st.session_state.tasks)
+                write_tasks_pg(st.session_state.tasks)
             else:
                 st.warning("Veuillez entrer un nom de tâche.")
 
@@ -208,7 +240,7 @@ if selection != "Transformation AGILE":
             if not supprimer:
                 updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
-    write_tasks_firebase(st.session_state.tasks)  # Mise à jour Firebase
+    write_tasks_pg(st.session_state.tasks)  # Mise à jour Firebase
 
 
 # --- Page Transformation AGILE ---
