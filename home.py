@@ -51,7 +51,7 @@ pages = {
 
 
 # --- Fonctions pour PG ---
-def read_tasks_pg(pages):
+def read_tasks_pg(pages=pages):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
