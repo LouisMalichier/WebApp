@@ -120,20 +120,18 @@ if "tasks" not in st.session_state:
     st.session_state.tasks = read_tasks_pg()
 
 
-# --- Fonctions Helper ---
-def task_avancement(tache):
-    if tache.get("subtasks"):
-        return int(
-            sum(s["avancement"] for s in tache["subtasks"]) / len(tache["subtasks"])
-        )
-    return tache.get("avancement", 0)
-
-
 def get_progress(page_name):
     tasks = st.session_state.tasks.get(page_name, [])
     if not tasks:
         return 0
-    total = sum(task_avancement(t) for t in tasks)
+    total = 0
+    for t in tasks:
+        if t.get("subtasks"):
+            total += int(
+                sum(s["avancement"] for s in t["subtasks"]) / len(t["subtasks"])
+            )
+        else:
+            total += t.get("avancement", 0)
     return int(total / len(tasks))
 
 
@@ -155,11 +153,20 @@ def render_progress(avancement, key):
     st.plotly_chart(fig, key=key)
 
 
-# --- Gestion Tâches et Sous-tâches ---
+def task_avancement(tache):
+    if tache.get("subtasks"):
+        return int(
+            sum(s["avancement"] for s in tache["subtasks"]) / len(tache["subtasks"])
+        )
+    else:
+        return tache.get("avancement", 0)
+
+
+# --- Tâches et Sous-tâches ---
 def render_task(tache, selection, idx):
     supprimer = False
     tache.setdefault("subtasks", [])
-    tache.setdefault("pilote", st.session_state.pilotes[0])
+    tache.setdefault("porteur", st.session_state.porteurs[0])
     tache.setdefault("date_debut", date.today())
     tache.setdefault("date_echeance", date.today())
 
@@ -189,30 +196,30 @@ def render_task(tache, selection, idx):
                 render_progress(
                     tache["avancement"], key=f"progress_task_{selection}_{idx}"
                 )
-        # Pilote
+        # Porteur
         with col3:
-            current = tache["pilote"]
+            current_porteur = tache["porteur"]
             choix = st.selectbox(
-                "Pilote",
-                options=st.session_state.pilotes + ["Autre"],
+                "Porteur",
+                options=st.session_state.porteurs + ["Autre"],
                 index=(
-                    st.session_state.pilotes.index(current)
-                    if current in st.session_state.pilotes
+                    st.session_state.porteurs.index(current_porteur)
+                    if current_porteur in st.session_state.porteurs
                     else 0
                 ),
-                key=f"pilote_select_{selection}_{idx}",
+                key=f"porteur_select_{selection}_{idx}",
             )
-            tache["pilote"] = (
+            tache["porteur"] = (
                 st.text_input(
-                    f"Nouveau pilote {idx}",
-                    value=current,
-                    key=f"pilote_input_{selection}_{idx}",
+                    f"Nouveau porteur {idx}",
+                    value=current_porteur,
+                    key=f"porteur_input_{selection}_{idx}",
                 )
                 if choix == "Autre"
                 else choix
             )
-            if tache["pilote"] not in st.session_state.pilotes:
-                st.session_state.pilotes.append(tache["pilote"])
+            if tache["porteur"] not in st.session_state.porteurs:
+                st.session_state.porteurs.append(tache["porteur"])
         # Dates
         with col4:
             tache["date_debut"] = st.date_input(
@@ -230,20 +237,18 @@ def render_task(tache, selection, idx):
         with col6:
             if st.button("Supprimer", key=f"del_{selection}_{idx}"):
                 supprimer = True
-
         # Sous-tâches
         st.markdown("#### Sous-tâches")
         for sub_idx, sub in enumerate(tache["subtasks"]):
             render_subtask(tache, sub, selection, idx, sub_idx)
-
-        # Ajouter sous-tâche
+        # Ajouter une sous-tâche
         with st.expander("Ajouter une sous-tâche"):
             add_subtask(tache, selection, idx)
     return not supprimer
 
 
 def render_subtask(tache, sub, selection, idx, sub_idx):
-    sub.setdefault("pilote", st.session_state.pilotes[0])
+    sub.setdefault("porteur", st.session_state.porteurs[0])
     sub.setdefault("date_debut", date.today())
     sub.setdefault("date_echeance", date.today())
     col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
@@ -256,9 +261,9 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
         with col_input:
             sub["avancement"] = st.number_input(
                 "",
-                0,
-                100,
-                sub.get("avancement", 0),
+                min_value=0,
+                max_value=100,
+                value=sub.get("avancement", 0),
                 step=1,
                 key=f"sub_av_{selection}_{idx}_{sub_idx}",
             )
@@ -268,35 +273,35 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
             )
     with col3:
         choix = st.selectbox(
-            "Pilote",
-            options=st.session_state.pilotes + ["Autre"],
+            "Porteur",
+            options=st.session_state.porteurs + ["Autre"],
             index=(
-                st.session_state.pilotes.index(sub["pilote"])
-                if sub["pilote"] in st.session_state.pilotes
+                st.session_state.porteurs.index(sub["porteur"])
+                if sub["porteur"] in st.session_state.porteurs
                 else 0
             ),
-            key=f"sub_pilote_select_{selection}_{idx}_{sub_idx}",
+            key=f"sub_porteur_select_{selection}_{idx}_{sub_idx}",
         )
-        sub["pilote"] = (
+        sub["porteur"] = (
             st.text_input(
-                f"Nouveau pilote {idx}-{sub_idx}",
-                value=sub["pilote"],
-                key=f"sub_pilote_input_{selection}_{idx}_{sub_idx}",
+                f"Nouveau porteur sous-tâche {idx}-{sub_idx}",
+                value=sub["porteur"],
+                key=f"sub_porteur_input_{selection}_{idx}_{sub_idx}",
             )
             if choix == "Autre"
             else choix
         )
-        if sub["pilote"] not in st.session_state.pilotes:
-            st.session_state.pilotes.append(sub["pilote"])
+        if sub["porteur"] not in st.session_state.porteurs:
+            st.session_state.porteurs.append(sub["porteur"])
     with col4:
         sub["date_debut"] = st.date_input(
-            "Date début",
+            "Date de début",
             sub["date_debut"],
             key=f"sub_date_debut_{selection}_{idx}_{sub_idx}",
         )
     with col5:
         sub["date_echeance"] = st.date_input(
-            "Date échéance",
+            "Date d'échéance",
             sub["date_echeance"],
             key=f"sub_date_echeance_{selection}_{idx}_{sub_idx}",
         )
@@ -307,33 +312,45 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
 
 def add_subtask(tache, selection, idx):
     name = st.text_input(f"Nom nouvelle sous-tâche {idx}", key=f"new_sub_nom_{idx}")
-    av = st.number_input("Avancement", 0, 100, 0, step=1, key=f"new_sub_av_{idx}")
-    choix = st.selectbox(
-        "Pilote",
-        options=st.session_state.pilotes + ["Autre"],
-        key=f"new_sub_pilote_select_{idx}",
+    av = st.number_input(
+        "Avancement",
+        min_value=0,
+        max_value=100,
+        value=0,
+        step=1,
+        key=f"new_sub_av_{idx}",
     )
-    porteur = st.text_input(f"Saisir pilote {idx}") if choix == "Autre" else choix
-    if porteur not in st.session_state.pilotes:
-        st.session_state.pilotes.append(porteur)
-    dd = st.date_input("Date début", value=date.today(), key=f"new_sub_dd_{idx}")
-    de = st.date_input("Date échéance", value=date.today(), key=f"new_sub_de_{idx}")
+    choix = st.selectbox(
+        "Porteur",
+        options=st.session_state.porteurs + ["Autre"],
+        key=f"new_sub_porteur_select_{idx}",
+    )
+    porteur = st.text_input(f"Saisir porteur {idx}") if choix == "Autre" else choix
+    if porteur not in st.session_state.porteurs:
+        st.session_state.porteurs.append(porteur)
+    date_debut = st.date_input(
+        "Date de début", value=date.today(), key=f"new_sub_date_debut_{idx}"
+    )
+    date_echeance = st.date_input(
+        "Date d'échéance", value=date.today(), key=f"new_sub_date_echeance_{idx}"
+    )
     if st.button("Ajouter sous-tâche", key=f"add_sub_btn_{idx}") and name:
         tache["subtasks"].append(
             {
                 "nom": name,
                 "avancement": av,
-                "pilote": porteur,
-                "date_debut": dd,
-                "date_echeance": de,
+                "porteur": porteur,
+                "date_debut": date_debut,
+                "date_echeance": date_echeance,
             }
         )
 
 
-# --- Streamlit Interface ---
+# --- Sidebar ---
 st.sidebar.title("Navigation")
 selection = st.sidebar.radio("Aller à", list(pages.keys()))
 
+# --- Page principale ---
 st.title(selection)
 st.write(pages[selection])
 
@@ -343,41 +360,34 @@ if selection != "Transformation AGILE":
     st.progress(avg_progress)
 
     with st.expander("Ajouter une tâche"):
-        nom_tache = st.text_input("Nom de la tâche")
-        avancement = st.number_input("Avancement (%)", 0, 100, 0)
-        pilote_choix = st.selectbox(
-            "Pilote", options=st.session_state.pilotes + ["Autre"]
-        )
-        pilote_input = (
-            st.text_input("Saisir un nouveau pilote")
-            if pilote_choix == "Autre"
-            else pilote_choix
-        )
-        dd = st.date_input("Date début", value=date.today())
-        de = st.date_input("Date échéance", value=date.today())
-        if st.button("Ajouter tâche") and nom_tache:
-            if pilote_input not in st.session_state.pilotes:
-                st.session_state.pilotes.append(pilote_input)
+        nom = st.text_input("Nom de la tâche")
+        av = st.number_input("Avancement (%)", 0, 100, 0)
+        choix = st.selectbox("Porteur", options=st.session_state.porteurs + ["Autre"])
+        porteur = st.text_input("Saisir porteur") if choix == "Autre" else choix
+        if porteur not in st.session_state.porteurs:
+            st.session_state.porteurs.append(porteur)
+        dd = st.date_input("Date de début", value=date.today())
+        de = st.date_input("Date d'échéance", value=date.today())
+        if st.button("Ajouter la tâche") and nom:
             st.session_state.tasks[selection].insert(
                 0,
                 {
-                    "nom": nom_tache,
-                    "avancement": avancement,
-                    "pilote": pilote_input,
+                    "nom": nom,
+                    "avancement": av,
+                    "porteur": porteur,
                     "date_debut": dd,
                     "date_echeance": de,
                     "subtasks": [],
                 },
             )
-            write_tasks_pg(st.session_state.tasks)
+            write_tasks()
 
     updated_tasks = []
     for idx, tache in enumerate(st.session_state.tasks[selection]):
         if render_task(tache, selection, idx):
             updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
-    write_tasks_pg(st.session_state.tasks)
-
+    write_tasks()
 else:
     st.markdown("<h3 style='text-align: center;'>🏛️ VISION</h3>", unsafe_allow_html=True)
     st.markdown(
@@ -385,46 +395,56 @@ else:
         unsafe_allow_html=True,
     )
     st.divider()
+
     col1, col2, col3 = st.columns(3)
-    bloc_progression(
-        "Organisation et processus",
-        "icons/org.png",
-        "Organisation et processus",
-        "Orgchart, méthodes de travail, standardisation",
-    )
-    bloc_progression(
-        "Enableur technologiques",
-        "icons/tech.png",
-        "Enableur technologiques",
-        "Data, outillage et plateforme",
-    )
-    bloc_progression(
-        "Budget & Mesure",
-        "icons/budget.png",
-        "Budget & Mesure",
-        "KPIs, OKRs, tableaux de bord",
-    )
+    with col1:
+        bloc_progression(
+            "Organisation et processus",
+            "icons/org.png",
+            "Organisation et processus",
+            "Orgchart, méthodes de travail, standardisation",
+        )
+    with col2:
+        bloc_progression(
+            "Enableur technologiques",
+            "icons/tech.png",
+            "Enableur technologiques",
+            "Data, outillage et plateforme",
+        )
+    with col3:
+        bloc_progression(
+            "Budget & Mesure",
+            "icons/budget.png",
+            "Budget & Mesure",
+            "KPIs, OKRs, tableaux de bord",
+        )
+
     col4, col5 = st.columns(2)
-    bloc_progression(
-        "Leadership et talents",
-        "icons/leader.png",
-        "Leadership et talents",
-        "Compétences, staffing, coaching",
-    )
-    bloc_progression(
-        "Culture et communication",
-        "icons/culture.png",
-        "Culture et communication",
-        "Valeurs, rituels, reconnaissance",
-    )
+    with col4:
+        bloc_progression(
+            "Leadership et talents",
+            "icons/leader.png",
+            "Leadership et talents",
+            "Compétences, staffing, coaching",
+        )
+    with col5:
+        bloc_progression(
+            "Culture et communication",
+            "icons/culture.png",
+            "Culture et communication",
+            "Valeurs, rituels, reconnaissance",
+        )
+
     st.divider()
     st.markdown("### 🚀 EXECUTION DE LA TRANSFORMATION")
+
     all_tasks = [
-        task_avancement(t)
+        t["avancement"]
         for p, tasks in st.session_state.tasks.items()
         if p != "Transformation AGILE"
         for t in tasks
     ]
-    avg_progress = int(sum(all_tasks) / len(all_tasks)) if all_tasks else 0
+    avg_progress = int(sum(all_tasks) / (len(pages) - 1)) if all_tasks else 0
+
     st.subheader(f"Avancement global : {avg_progress}%")
     st.progress(avg_progress)
