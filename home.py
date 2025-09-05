@@ -9,7 +9,7 @@ import plotly.express as px
 # --- Connexion PostgreSQL ---
 def get_connection():
     return psycopg2.connect(
-        "postgresql://webappbdd_v2_user:gPOCiOFQnJ09tgLI6dJ46v1mZ6e9AVWv@dpg-d2t9143uibrs73eih1d0-a/webappbdd_v2",
+        "postgresql://webappbdd_v3_user:YXxCijqf6LOd0enpqpdDBvvm1qfLzPBQ@dpg-d2tfp0ur433s73dckv50-a/webappbdd_v3",
         sslmode="require",
     )
 
