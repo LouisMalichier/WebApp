@@ -62,8 +62,8 @@ def read_tasks_pg():
 
     tasks_dict = {page: [] for page in pages.keys()}
     for r in rows:
-        subtasks = r[7] or []  # déjà un dict/list, pas besoin de json.loads
-        # Conversion des dates si nécessaire
+        subtasks = r[7] if r[7] else []  # PAS de json.loads, c'est déjà une list
+        # Conversion des dates dans les sous-tâches si besoin
         for s in subtasks:
             if isinstance(s.get("date_debut"), str):
                 s["date_debut"] = date.fromisoformat(s["date_debut"])
