@@ -114,8 +114,8 @@ def write_tasks_pg(tasks_dict):
 
 
 # --- Session State ---
-if "pilotes" not in st.session_state:
-    st.session_state.pilotes = ["DSI", "DATA", "PO", "DS"]
+if "porteurs" not in st.session_state:
+    st.session_state.porteurs = ["DSI", "DATA", "PO", "DS"]
 if "tasks" not in st.session_state:
     st.session_state.tasks = read_tasks_pg()
 
