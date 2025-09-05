@@ -1,13 +1,12 @@
 import streamlit as st
 from datetime import date
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials, db
-import uuid
+import plotly.express as px
 import psycopg2
-import os
+import uuid
 
 
+# --- Connexion PostgreSQL ---
 def get_connection():
     return psycopg2.connect(
         "postgresql://webappbdd_v2_user:gPOCiOFQnJ09tgLI6dJ46v1mZ6e9AVWv@dpg-d2t9143uibrs73eih1d0-a/webappbdd_v2",
@@ -15,21 +14,20 @@ def get_connection():
     )
 
 
-# Création de la table si elle n’existe pas
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
         """
-    CREATE TABLE IF NOT EXISTS tasks (
-        id UUID PRIMARY KEY,
-        page TEXT NOT NULL,
-        nom TEXT NOT NULL,
-        avancement INT NOT NULL,
-        pilote TEXT NOT NULL,
-        date_debut DATE NOT NULL,
-        date_echeance DATE NOT NULL
-    );
+        CREATE TABLE IF NOT EXISTS tasks (
+            id UUID PRIMARY KEY,
+            page TEXT NOT NULL,
+            nom TEXT NOT NULL,
+            avancement INT NOT NULL,
+            pilote TEXT NOT NULL,
+            date_debut DATE NOT NULL,
+            date_echeance DATE NOT NULL
+        );
     """
     )
     conn.commit()
@@ -37,21 +35,7 @@ def init_db():
     conn.close()
 
 
-st.set_page_config(page_title="Transformation Agile", layout="wide")
-
-# --- Pages ---
-pages = {
-    "Transformation AGILE": "La méthode agile permet d'aller plus vite et plus loin",
-    "Organisation et processus": "Orgchart, méthodes de travail, standardisation",
-    "Enableur technologiques": "Data, outillage et plateforme",
-    "Budget & Mesure": "KPIs, OKRs, tableaux de bord",
-    "Leadership et talents": "Compétences, staffing, coaching",
-    "Culture et communication": "Valeurs, rituels, reconnaissance",
-}
-
-
-# --- Fonctions pour PG ---
-def read_tasks_pg(pages=pages):
+def read_tasks_pg(pages):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
@@ -60,7 +44,6 @@ def read_tasks_pg(pages=pages):
     rows = cur.fetchall()
     cur.close()
     conn.close()
-
     tasks_dict = {page: [] for page in pages.keys()}
     for r in rows:
         tasks_dict[r[1]].append(
@@ -72,6 +55,7 @@ def read_tasks_pg(pages=pages):
                 "pilote": r[4],
                 "date_debut": r[5],
                 "date_echeance": r[6],
+                "subtasks": [],
             }
         )
     return tasks_dict
@@ -80,7 +64,7 @@ def read_tasks_pg(pages=pages):
 def write_tasks_pg(tasks_dict):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM tasks;")  # simple : on réécrit tout
+    cur.execute("DELETE FROM tasks;")
     for page, tasks in tasks_dict.items():
         for t in tasks:
             if "id" not in t:
@@ -88,7 +72,7 @@ def write_tasks_pg(tasks_dict):
             cur.execute(
                 """
                 INSERT INTO tasks (id, page, nom, avancement, pilote, date_debut, date_echeance)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s)
             """,
                 (
                     t["id"],
@@ -105,19 +89,39 @@ def write_tasks_pg(tasks_dict):
     conn.close()
 
 
+# --- Pages ---
+pages = {
+    "Transformation AGILE": "La méthode agile permet d'aller plus vite et plus loin",
+    "Organisation et processus": "Orgchart, méthodes de travail, standardisation",
+    "Enableur technologiques": "Data, outillage et plateforme",
+    "Budget & Mesure": "KPIs, OKRs, tableaux de bord",
+    "Leadership et talents": "Compétences, staffing, coaching",
+    "Culture et communication": "Valeurs, rituels, reconnaissance",
+}
+
+# --- Initialisation ---
+st.set_page_config(page_title="Transformation Agile", layout="wide")
 init_db()
 
-# --- Session state ---
 if "pilotes" not in st.session_state:
     st.session_state.pilotes = ["DSI", "DATA", "PO", "DS"]
 if "tasks" not in st.session_state:
-    st.session_state.tasks = read_tasks_pg()
+    st.session_state.tasks = read_tasks_pg(pages)
 
 
-# --- Fonctions ---
+# --- Helpers ---
 def get_progress(page_name):
     tasks = st.session_state.tasks.get(page_name, [])
     return int(sum(t["avancement"] for t in tasks) / len(tasks)) if tasks else 0
+
+
+def render_progress(avancement, key):
+    fig = px.pie(values=[avancement, 100 - avancement], hole=0.6)
+    fig.update_traces(marker_colors=["#4CAF50", "#E0E0E0"], textinfo="none")
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0), width=50, height=50, showlegend=False
+    )
+    st.plotly_chart(fig, use_container_width=False, key=key)
 
 
 def bloc_progression(page_name, icon, title, caption):
@@ -133,113 +137,128 @@ def bloc_progression(page_name, icon, title, caption):
 st.sidebar.title("Navigation")
 selection = st.sidebar.radio("Aller à", list(pages.keys()))
 
-# --- Page sélectionnée ---
+# --- Page principale ---
 st.title(selection)
 st.write(pages[selection])
 
-# --- Pages de gestion de tâches ---
 if selection != "Transformation AGILE":
-    avg_progress = get_progress(selection)
-    st.write(f"Progression : {avg_progress}%")
-    st.progress(avg_progress)
+
+    st.write(f"Progression : {get_progress(selection)}%")
+    st.progress(get_progress(selection))
 
     with st.expander("Ajouter une tâche"):
-        nom_tache = st.text_input("Nom de la tâche")
-        avancement = st.slider("Avancement (%)", 0, 100, 0)
+        nom = st.text_input("Nom de la tâche")
+        av = st.slider("Avancement (%)", 0, 100, 0)
         pilote_choix = st.selectbox(
-            "Pilote associé", options=st.session_state.pilotes + ["Autre"]
+            "Pilote associé", st.session_state.pilotes + ["Autre"]
         )
-        pilote_input = (
-            st.text_input("Saisir un nouveau pilote")
+        pilote = (
+            st.text_input("Saisir un pilote")
             if pilote_choix == "Autre"
             else pilote_choix
         )
-        date_debut_tache = st.date_input("Date de début", value=date.today())
-        date_echeance_tache = st.date_input(
-            "Date d'échéance prévue", value=date.today()
-        )
-
-        if st.button("Ajouter la tâche"):
-            if nom_tache:
-                if pilote_input not in st.session_state.pilotes:
-                    st.session_state.pilotes.append(pilote_input)
-                st.session_state.tasks[selection].insert(
-                    0,
-                    {
-                        "nom": nom_tache,
-                        "avancement": avancement,
-                        "pilote": pilote_input,
-                        "date_debut": date_debut_tache,
-                        "date_echeance": date_echeance_tache,
-                    },
-                )
-                write_tasks_pg(st.session_state.tasks)
-            else:
-                st.warning("Veuillez entrer un nom de tâche.")
+        dd = st.date_input("Date de début", value=date.today())
+        de = st.date_input("Date d'échéance", value=date.today())
+        if st.button("Ajouter la tâche") and nom:
+            if pilote not in st.session_state.pilotes:
+                st.session_state.pilotes.append(pilote)
+            st.session_state.tasks[selection].insert(
+                0,
+                {
+                    "nom": nom,
+                    "avancement": av,
+                    "pilote": pilote,
+                    "date_debut": dd,
+                    "date_echeance": de,
+                    "subtasks": [],
+                    "_new": True,
+                },
+            )
+            write_tasks_pg(st.session_state.tasks)
 
     st.subheader("Liste des tâches")
     updated_tasks = []
     for idx, tache in enumerate(st.session_state.tasks[selection]):
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 1, 1, 1])
         supprimer = False
+        tache.setdefault("subtasks", [])
+        tache.setdefault("pilote", st.session_state.pilotes[0])
         tache.setdefault("date_debut", date.today())
         tache.setdefault("date_echeance", date.today())
-        tache.setdefault("pilote", st.session_state.pilotes[0])
 
-        with col1:
-            tache["nom"] = st.text_input(
-                "Tâche", tache["nom"], key=f"nom_{selection}_{idx}"
-            )
-        with col2:
-            tache["avancement"] = st.slider(
-                "Avancement", 0, 100, tache["avancement"], key=f"av_{selection}_{idx}"
-            )
-        with col3:
-            current_pilote = tache["pilote"]
-            pilote_choix = st.selectbox(
-                "Pilote",
-                options=st.session_state.pilotes + ["Autre"],
-                index=(
-                    st.session_state.pilotes.index(current_pilote)
-                    if current_pilote in st.session_state.pilotes
-                    else 0
-                ),
-                key=f"pilote_select_{selection}_{idx}",
-            )
-            new_pilote = (
-                st.text_input(
-                    f"Nouveau pilote {idx+1}",
-                    value=current_pilote,
-                    key=f"pilote_input_{selection}_{idx}",
+        # Pie + Nom dans expander
+        with st.expander(f"{tache['nom']} ({tache['avancement']}%)"):
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 1, 1, 1, 1])
+
+            # Nom (bloqué après création)
+            with col1:
+                tache["nom"] = st.text_input(
+                    "Tâche",
+                    tache["nom"],
+                    disabled=not tache.get("_new", False),
+                    key=f"nom_{selection}_{idx}",
                 )
-                if pilote_choix == "Autre"
-                else pilote_choix
-            )
-            tache["pilote"] = new_pilote
-            if new_pilote not in st.session_state.pilotes:
-                st.session_state.pilotes.append(new_pilote)
-        with col4:
-            tache["date_debut"] = st.date_input(
-                "Date de début",
-                tache["date_debut"],
-                key=f"date_debut_{selection}_{idx}",
-            )
-        with col5:
-            tache["date_echeance"] = st.date_input(
-                "Date d'échéance",
-                tache["date_echeance"],
-                key=f"date_echeance_{selection}_{idx}",
-            )
-        with col6:
-            st.write("")
-            st.write("")
-            if st.button("Supprimer", key=f"del_{selection}_{idx}"):
-                supprimer = True
-            if not supprimer:
-                updated_tasks.append(tache)
-    st.session_state.tasks[selection] = updated_tasks
-    write_tasks_pg(st.session_state.tasks)  # Mise à jour Firebase
+                tache.pop("_new", None)
 
+            # Avancement
+            with col2:
+                tache["avancement"] = st.slider(
+                    "Avancement",
+                    0,
+                    100,
+                    tache["avancement"],
+                    key=f"av_{selection}_{idx}",
+                )
+                render_progress(tache["avancement"], key=f"pie_{selection}_{idx}")
+
+            # Pilote
+            with col3:
+                current_pilote = tache["pilote"]
+                choix = st.selectbox(
+                    "Pilote",
+                    options=st.session_state.pilotes + ["Autre"],
+                    index=(
+                        st.session_state.pilotes.index(current_pilote)
+                        if current_pilote in st.session_state.pilotes
+                        else 0
+                    ),
+                    key=f"pilote_select_{selection}_{idx}",
+                )
+                tache["pilote"] = (
+                    st.text_input(
+                        f"Nouveau pilote {idx+1}",
+                        value=current_pilote,
+                        key=f"pilote_input_{selection}_{idx}",
+                    )
+                    if choix == "Autre"
+                    else choix
+                )
+                if tache["pilote"] not in st.session_state.pilotes:
+                    st.session_state.pilotes.append(tache["pilote"])
+
+            # Dates
+            with col4:
+                tache["date_debut"] = st.date_input(
+                    "Date de début",
+                    tache["date_debut"],
+                    key=f"date_debut_{selection}_{idx}",
+                )
+            with col5:
+                tache["date_echeance"] = st.date_input(
+                    "Date d'échéance",
+                    tache["date_echeance"],
+                    key=f"date_echeance_{selection}_{idx}",
+                )
+
+            # Supprimer
+            with col6:
+                if st.button("Supprimer", key=f"del_{selection}_{idx}"):
+                    supprimer = True
+
+        if not supprimer:
+            updated_tasks.append(tache)
+
+    st.session_state.tasks[selection] = updated_tasks
+    write_tasks_pg(st.session_state.tasks)
 
 # --- Page Transformation AGILE ---
 else:
@@ -249,7 +268,6 @@ else:
         unsafe_allow_html=True,
     )
     st.divider()
-
     col1, col2, col3 = st.columns(3)
     with col1:
         bloc_progression(
@@ -272,7 +290,6 @@ else:
             "Budget & Mesure",
             "KPIs, OKRs, tableaux de bord",
         )
-
     col4, col5 = st.columns(2)
     with col4:
         bloc_progression(
@@ -288,10 +305,8 @@ else:
             "Culture et communication",
             "Valeurs, rituels, reconnaissance",
         )
-
     st.divider()
     st.markdown("### 🚀 EXECUTION DE LA TRANSFORMATION")
-
     all_tasks = [
         t["avancement"]
         for p, tasks in st.session_state.tasks.items()
@@ -299,6 +314,5 @@ else:
         for t in tasks
     ]
     avg_progress = int(sum(all_tasks) / (len(pages) - 1)) if all_tasks else 0
-
     st.subheader(f"Avancement global : {avg_progress}%")
     st.progress(avg_progress)
