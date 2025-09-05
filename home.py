@@ -10,9 +10,7 @@ import os
 
 def get_connection():
     return psycopg2.connect(
-        os.environ[
-            "postgresql://webappbdd_v2_user:gPOCiOFQnJ09tgLI6dJ46v1mZ6e9AVWv@dpg-d2t9143uibrs73eih1d0-a/webappbdd_v2"
-        ],
+        "postgresql://webappbdd_v2_user:gPOCiOFQnJ09tgLI6dJ46v1mZ6e9AVWv@dpg-d2t9143uibrs73eih1d0-a/webappbdd_v2",
         sslmode="require",
     )
 
