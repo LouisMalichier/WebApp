@@ -1,5 +1,5 @@
-page,nom,avancement,porteur,date_debut,date_echeance
-Organisation et processus,Test,33,DSI,2025-09-05,2025-09-05
-Organisation et processus,Tst,25,DSI,2025-09-04,2025-09-04
-Enableur technologiques,Tst,35,DSI,2025-09-05,2025-09-05
-Leadership et talents,trd,22,DSI,2025-09-05,2025-09-05
+page,nom,avancement,porteur,date_debut,date_echeance,subtasks
+Organisation et processus,Test,33,DSI,2025-09-05,2025-09-05,[]
+Organisation et processus,Tst,25,DSI,2025-09-04,2025-09-04,[]
+Enableur technologiques,Tst,35,DSI,2025-09-05,2025-09-05,[]
+Leadership et talents,trd,22,DSI,2025-09-05,2025-09-05,[]

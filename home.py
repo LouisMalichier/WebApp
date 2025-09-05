@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import date
 import pandas as pd
-import matplotlib.pyplot as plt
+import json
 import plotly.express as px
 
 st.set_page_config(page_title="Transformation Agile", layout="wide")
@@ -16,47 +16,63 @@ pages = {
     "Culture et communication": "Valeurs, rituels, reconnaissance",
 }
 
-CSV_PATH = "tasks.csv"
+JSON_PATH = "tasks.json"
 
 # --- Session State Initialization ---
 if "porteurs" not in st.session_state:
     st.session_state.porteurs = ["DSI", "DATA", "PO", "DS"]
+
 if "tasks" not in st.session_state:
     try:
-        df = pd.read_csv(CSV_PATH)
-        st.session_state.tasks = {
-            p: df[df["page"] == p].to_dict(orient="records") for p in pages.keys()
-        }
-        for page_tasks in st.session_state.tasks.values():
-            for t in page_tasks:
-                t.setdefault("subtasks", [])
-                t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
-                t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
+        with open(JSON_PATH, "r") as f:
+            st.session_state.tasks = json.load(f)
+            # Convertir les dates de string à date
+            for page, tasks in st.session_state.tasks.items():
+                for t in tasks:
+                    t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
+                    t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
+                    for s in t.get("subtasks", []):
+                        s["date_debut"] = pd.to_datetime(s["date_debut"]).date()
+                        s["date_echeance"] = pd.to_datetime(s["date_echeance"]).date()
     except FileNotFoundError:
         st.session_state.tasks = {p: [] for p in pages.keys()}
 
 
 # --- Helper Functions ---
 def write_tasks():
-    all_tasks = []
+    # Convertir les dates en string avant d'écrire
+    to_save = {}
     for page, tasks in st.session_state.tasks.items():
+        to_save[page] = []
         for t in tasks:
-            all_tasks.append(
-                {
-                    "page": page,
-                    "nom": t["nom"],
-                    "avancement": t["avancement"],
-                    "porteur": t["porteur"],
-                    "date_debut": t["date_debut"],
-                    "date_echeance": t["date_echeance"],
-                }
-            )
-    pd.DataFrame(all_tasks).to_csv(CSV_PATH, index=False)
+            t_copy = t.copy()
+            t_copy["date_debut"] = t_copy["date_debut"].isoformat()
+            t_copy["date_echeance"] = t_copy["date_echeance"].isoformat()
+            subtasks = []
+            for s in t_copy.get("subtasks", []):
+                s_copy = s.copy()
+                s_copy["date_debut"] = s_copy["date_debut"].isoformat()
+                s_copy["date_echeance"] = s_copy["date_echeance"].isoformat()
+                subtasks.append(s_copy)
+            t_copy["subtasks"] = subtasks
+            to_save[page].append(t_copy)
+    with open(JSON_PATH, "w") as f:
+        json.dump(to_save, f, indent=2)
 
 
 def get_progress(page_name):
     tasks = st.session_state.tasks.get(page_name, [])
-    return int(sum(t["avancement"] for t in tasks) / len(tasks)) if tasks else 0
+    if not tasks:
+        return 0
+    total = 0
+    for t in tasks:
+        if t.get("subtasks"):
+            total += int(
+                sum(s["avancement"] for s in t["subtasks"]) / len(t["subtasks"])
+            )
+        else:
+            total += t.get("avancement", 0)
+    return int(total / len(tasks))
 
 
 def bloc_progression(page_name, icon, title, caption):
@@ -68,25 +84,25 @@ def bloc_progression(page_name, icon, title, caption):
     st.progress(prog)
 
 
-def render_progress(avancement):
+def render_progress(avancement, key):
     fig = px.pie(values=[avancement, 100 - avancement], hole=0.6)
     fig.update_traces(marker_colors=["#4CAF50", "#E0E0E0"], textinfo="none")
     fig.update_layout(
         margin=dict(t=0, b=0, l=0, r=0), width=50, height=50, showlegend=False
     )
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, key=key)
 
 
 def task_avancement(tache):
-    return (
-        int(
-            sum(sub["avancement"] for sub in tache["subtasks"]) / len(tache["subtasks"])
+    if tache.get("subtasks"):
+        return int(
+            sum(s["avancement"] for s in tache["subtasks"]) / len(tache["subtasks"])
         )
-        if tache["subtasks"]
-        else tache.get("avancement", 0)
-    )
+    else:
+        return tache.get("avancement", 0)
 
 
+# --- Tâches et Sous-tâches ---
 def render_task(tache, selection, idx):
     supprimer = False
     tache.setdefault("subtasks", [])
@@ -96,18 +112,15 @@ def render_task(tache, selection, idx):
 
     with st.expander(tache["nom"]):
         col1, col2, col3, col4, col5, col6 = st.columns([3, 3, 1, 1, 1, 1])
-
         # Nom
         with col1:
             tache["nom"] = st.text_input(
                 "Tâche", tache["nom"], key=f"nom_{selection}_{idx}"
             )
-
         # Avancement
         with col2:
             col_input, col_chart = st.columns([2, 1])
             with col_input:
-                tache["avancement"] = task_avancement(tache)
                 if not tache["subtasks"]:
                     tache["avancement"] = st.number_input(
                         "",
@@ -117,9 +130,12 @@ def render_task(tache, selection, idx):
                         step=1,
                         key=f"av_{selection}_{idx}",
                     )
+                else:
+                    tache["avancement"] = task_avancement(tache)
             with col_chart:
-                render_progress(tache["avancement"])
-
+                render_progress(
+                    tache["avancement"], key=f"progress_task_{selection}_{idx}"
+                )
         # Porteur
         with col3:
             current_porteur = tache["porteur"]
@@ -144,7 +160,6 @@ def render_task(tache, selection, idx):
             )
             if tache["porteur"] not in st.session_state.porteurs:
                 st.session_state.porteurs.append(tache["porteur"])
-
         # Dates
         with col4:
             tache["date_debut"] = st.date_input(
@@ -158,21 +173,17 @@ def render_task(tache, selection, idx):
                 tache["date_echeance"],
                 key=f"date_echeance_{selection}_{idx}",
             )
-
         # Supprimer
         with col6:
             if st.button("Supprimer", key=f"del_{selection}_{idx}"):
                 supprimer = True
-
         # Sous-tâches
         st.markdown("#### Sous-tâches")
         for sub_idx, sub in enumerate(tache["subtasks"]):
             render_subtask(tache, sub, selection, idx, sub_idx)
-
         # Ajouter une sous-tâche
         with st.expander("Ajouter une sous-tâche"):
             add_subtask(tache, selection, idx)
-
     return not supprimer
 
 
@@ -180,10 +191,7 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
     sub.setdefault("porteur", st.session_state.porteurs[0])
     sub.setdefault("date_debut", date.today())
     sub.setdefault("date_echeance", date.today())
-
     col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
-    supprimer_sub = False
-
     with col1:
         sub["nom"] = st.text_input(
             "Sous-tâche", sub["nom"], key=f"sub_nom_{selection}_{idx}_{sub_idx}"
@@ -200,7 +208,9 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
                 key=f"sub_av_{selection}_{idx}_{sub_idx}",
             )
         with col_chart:
-            render_progress(sub["avancement"])
+            render_progress(
+                sub["avancement"], key=f"progress_subtask_{selection}_{idx}_{sub_idx}"
+            )
     with col3:
         choix = st.selectbox(
             "Porteur",
@@ -285,14 +295,7 @@ st.title(selection)
 st.write(pages[selection])
 
 if selection != "Transformation AGILE":
-    avg_progress = (
-        int(
-            sum(t.get("avancement", 0) for t in st.session_state.tasks[selection])
-            / len(st.session_state.tasks[selection])
-        )
-        if st.session_state.tasks[selection]
-        else 0
-    )
+    avg_progress = get_progress(selection)
     st.write(f"Progression : {avg_progress}%")
     st.progress(avg_progress)
 

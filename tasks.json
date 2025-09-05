@@ -1,0 +1,32 @@
+{
+  "Transformation AGILE": [],
+  "Organisation et processus": [
+    {
+      "nom": "TestTache",
+      "avancement": 39,
+      "porteur": "DSI",
+      "date_debut": "2025-09-05",
+      "date_echeance": "2025-09-05",
+      "subtasks": [
+        {
+          "nom": "TestSousTache1",
+          "avancement": 33,
+          "porteur": "DSI",
+          "date_debut": "2025-09-05",
+          "date_echeance": "2025-09-05"
+        },
+        {
+          "nom": "TestSousTache2",
+          "avancement": 45,
+          "porteur": "DSI",
+          "date_debut": "2025-09-05",
+          "date_echeance": "2025-09-05"
+        }
+      ]
+    }
+  ],
+  "Enableur technologiques": [],
+  "Budget & Mesure": [],
+  "Leadership et talents": [],
+  "Culture et communication": []
+}
