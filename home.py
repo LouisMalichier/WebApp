@@ -1,20 +1,6 @@
 import streamlit as st
 from datetime import date
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials, db
-import uuid
-
-# --- Firebase init ---
-cred = credentials.Certificate("firebase_credentials.json")
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(
-        cred,
-        {
-            "databaseURL": "https://webappfdj-default-rtdb.europe-west1.firebasedatabase.app/"  # remplace <TON-PROJET> par le nom de ton projet
-        },
-    )
-
 
 st.set_page_config(page_title="Transformation Agile", layout="wide")
 
@@ -33,55 +19,44 @@ CSV_PATH = "tasks.csv"  # CSV local sur le serveur
 
 
 # --- Fonctions pour CSV ---
-def read_tasks_firebase():
-    ref = db.reference("tasks")
-    data = ref.get()
-
-    # Si vide, initialiser un dict vide
-    if not data or not isinstance(data, dict):
-        data = {}
-
-    tasks_dict = {page: [] for page in pages.keys()}
-
-    for key, t in data.items():
-        # vérification que t est bien un dict avec les clés attendues
-        if isinstance(t, dict) and "page" in t:
-            t.setdefault("date_debut", str(date.today()))
-            t.setdefault("date_echeance", str(date.today()))
-            t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
-            t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
-            tasks_dict[t["page"]].append(t)
-
-    return tasks_dict
+def read_tasks():
+    try:
+        df = pd.read_csv(CSV_PATH)
+        tasks_dict = {}
+        for page in pages.keys():
+            page_tasks = df[df["page"] == page].to_dict(orient="records")
+            for t in page_tasks:
+                t["date_debut"] = pd.to_datetime(t["date_debut"]).date()
+                t["date_echeance"] = pd.to_datetime(t["date_echeance"]).date()
+            tasks_dict[page] = page_tasks
+        return tasks_dict
+    except FileNotFoundError:
+        return {page: [] for page in pages.keys()}
 
 
-def write_tasks_firebase(tasks_dict):
-    ref = db.reference("tasks")
-    all_tasks = {}
-
+def write_tasks(tasks_dict):
+    all_tasks = []
     for page, tasks in tasks_dict.items():
         for t in tasks:
-            if "id" not in t:
-                t["id"] = str(uuid.uuid4())
-            all_tasks[t["id"]] = {
-                "page": page,
-                "nom": t["nom"],
-                "avancement": t["avancement"],
-                "pilote": t["pilote"],
-                "date_debut": t["date_debut"].strftime("%Y-%m-%d"),
-                "date_echeance": t["date_echeance"].strftime("%Y-%m-%d"),
-            }
-
-    # Écrase tout pour supprimer les tâches supprimées
-    ref.set(all_tasks)
-    print("Firebase mis à jour avec toutes les tâches existantes")
+            all_tasks.append(
+                {
+                    "page": page,
+                    "nom": t["nom"],
+                    "avancement": t["avancement"],
+                    "pilote": t["pilote"],
+                    "date_debut": t["date_debut"],
+                    "date_echeance": t["date_echeance"],
+                }
+            )
+    df = pd.DataFrame(all_tasks)
+    df.to_csv(CSV_PATH, index=False)
 
 
 # --- Session state ---
 if "pilotes" not in st.session_state:
     st.session_state.pilotes = ["DSI", "DATA", "PO", "DS"]
 if "tasks" not in st.session_state:
-    st.session_state.tasks = read_tasks_firebase()
+    st.session_state.tasks = read_tasks()
 
 
 # --- Fonctions ---
@@ -143,7 +118,7 @@ if selection != "Transformation AGILE":
                         "date_echeance": date_echeance_tache,
                     },
                 )
-                write_tasks_firebase(st.session_state.tasks)
+                write_tasks(st.session_state.tasks)
             else:
                 st.warning("Veuillez entrer un nom de tâche.")
 
@@ -205,11 +180,10 @@ if selection != "Transformation AGILE":
             st.write("")
             if st.button("Supprimer", key=f"del_{selection}_{idx}"):
                 supprimer = True
-            if not supprimer:
-                updated_tasks.append(tache)
+        if not supprimer:
+            updated_tasks.append(tache)
     st.session_state.tasks[selection] = updated_tasks
-    write_tasks_firebase(st.session_state.tasks)  # Mise à jour Firebase
-
+    write_tasks(st.session_state.tasks)
 
 # --- Page Transformation AGILE ---
 else:
