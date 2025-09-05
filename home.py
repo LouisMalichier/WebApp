@@ -92,6 +92,15 @@ def write_tasks_pg(tasks_dict):
         for t in tasks:
             if "id" not in t:
                 t["id"] = str(uuid.uuid4())
+
+            # Convertir les dates des subtasks en string
+            subtasks_serializable = []
+            for s in t.get("subtasks", []):
+                s_copy = s.copy()
+                s_copy["date_debut"] = s_copy["date_debut"].isoformat()
+                s_copy["date_echeance"] = s_copy["date_echeance"].isoformat()
+                subtasks_serializable.append(s_copy)
+
             cur.execute(
                 """
                 INSERT INTO tasks (id, page, nom, avancement, pilote, date_debut, date_echeance, subtasks)
@@ -105,7 +114,7 @@ def write_tasks_pg(tasks_dict):
                     t["pilote"],
                     t["date_debut"],
                     t["date_echeance"],
-                    json.dumps(t.get("subtasks", [])),
+                    json.dumps(subtasks_serializable),
                 ),
             )
     conn.commit()
