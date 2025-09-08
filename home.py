@@ -156,12 +156,26 @@ def bloc_progression(page_name, icon, title, caption):
 
 
 def render_progress(avancement, key):
-    fig = px.pie(values=[avancement, 100 - avancement], hole=0.6)
-    fig.update_traces(marker_colors=["#4CAF50", "#E0E0E0"], textinfo="none")
-    fig.update_layout(
-        margin=dict(t=0, b=0, l=0, r=0), width=50, height=50, showlegend=False
+    # Choix de la couleur selon la valeur
+    if avancement < 10:
+        color = "red"
+    elif avancement < 33:
+        color = "yellow"
+    elif avancement < 50:
+        color = "orange"
+    elif avancement < 80:
+        color = "blue"
+    elif avancement < 100:
+        color = "green"
+    else:
+        color = "darkgreen"
+
+    # HTML pour une boîte alignée verticalement au centre
+    st.markdown(f"**Avancement**")
+    st.markdown(
+        f"<span style='color:{color}; font-weight:bold'>{avancement}%</span>",
+        unsafe_allow_html=True,
     )
-    st.plotly_chart(fig, key=key)
 
 
 def task_avancement(tache):
@@ -181,7 +195,22 @@ def render_task(tache, selection, idx):
     tache.setdefault("date_debut", date.today())
     tache.setdefault("date_echeance", date.today())
 
-    with st.expander(tache["nom"]):
+    # Calcul des infos pour le titre
+    avancement = task_avancement(tache)
+    porteur = tache.get("porteur", "")
+    if tache.get("subtasks"):
+        # Date de début la plus ancienne
+        min_date = min(s["date_debut"] for s in tache["subtasks"])
+        # Date d'échéance la plus lointaine
+        max_date = max(s["date_echeance"] for s in tache["subtasks"])
+    else:
+        min_date = tache["date_debut"]
+        max_date = tache["date_echeance"]
+
+    # Texte résumé dans l'expander
+    expander_label = f"{tache['nom']} | Avancement: {avancement}% | Porteur: {porteur} | Début: {min_date} | Échéance: {max_date}"
+
+    with st.expander(expander_label):
         col1, col2, col3, col4, col5, col6 = st.columns([3, 3, 1, 1, 1, 1])
         # Nom
         with col1:
@@ -262,13 +291,13 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
     sub.setdefault("porteur", st.session_state.porteurs[0])
     sub.setdefault("date_debut", date.today())
     sub.setdefault("date_echeance", date.today())
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
     with col1:
         sub["nom"] = st.text_input(
             "Sous-tâche", sub["nom"], key=f"sub_nom_{selection}_{idx}_{sub_idx}"
         )
     with col2:
-        col_input, col_chart = st.columns([2, 1])
+        col_input, col_chart = st.columns([1, 2])
         with col_input:
             sub["avancement"] = st.number_input(
                 "",
@@ -407,30 +436,30 @@ else:
     )
     st.divider()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
+        bloc_progression(
+            "Pilotage et budget",
+            "icons/budget.png",
+            "Budget & Mesure",
+            "KPIs, OKRs, tableaux de bord",
+        )
+    with col2:
         bloc_progression(
             "Organisation et processus",
             "icons/org.png",
             "Organisation et processus",
             "Orgchart, méthodes de travail, standardisation",
         )
-    with col2:
+
+    col3, col4, col5 = st.columns(3)
+    with col3:
         bloc_progression(
-            "Enableur technologiques",
+            "Enableurs technologiques",
             "icons/tech.png",
             "Enableur technologiques",
             "Data, outillage et plateforme",
         )
-    with col3:
-        bloc_progression(
-            "Budget & Mesure",
-            "icons/budget.png",
-            "Budget & Mesure",
-            "KPIs, OKRs, tableaux de bord",
-        )
-
-    col4, col5 = st.columns(2)
     with col4:
         bloc_progression(
             "Leadership et talents",
