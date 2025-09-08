@@ -281,7 +281,7 @@ def render_task(tache, selection, idx):
     expander_label = f"{tache['nom']} | Avancement: {avancement}% | Porteur: {porteur} | Début: {min_date} | Échéance: {max_date}"
 
     with st.expander(expander_label):
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 3, 1, 1, 1, 1])
+        col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
         # Nom
         with col1:
             tache["nom"] = st.text_input(
