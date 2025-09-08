@@ -5,33 +5,41 @@ import uuid
 import json
 import plotly.express as px
 
-
-# --- Connexion PostgreSQL ---
+# ============== Connexion PostgreSQL ==============
 def get_connection():
     return psycopg2.connect(
         "postgresql://webappbdd_v3_user:YXxCijqf6LOd0enpqpdDBvvm1qfLzPBQ@dpg-d2tfp0ur433s73dckv50-a/webappbdd_v3",
         sslmode="require",
     )
 
-
-# --- Création de la table ---
+# ============== Création/Migration de la table ==============
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
+
+    # 1) créer la table si besoin (avec 'porteur')
     cur.execute(
-    """
-    CREATE TABLE IF NOT EXISTS tasks (
-        id UUID PRIMARY KEY,
-        page TEXT NOT NULL,
-        nom TEXT NOT NULL,
-        avancement INT NOT NULL,
-        porteur TEXT NOT NULL,
-        date_debut DATE NOT NULL,
-        date_echeance DATE NOT NULL,
-        subtasks JSONB DEFAULT '[]'
-    );
-"""
-)
+        """
+        CREATE TABLE IF NOT EXISTS tasks (
+            id UUID PRIMARY KEY,
+            page TEXT NOT NULL,
+            nom TEXT NOT NULL,
+            avancement INT NOT NULL,
+            porteur TEXT NOT NULL,
+            date_debut DATE NOT NULL,
+            date_echeance DATE NOT NULL,
+            subtasks JSONB NOT NULL DEFAULT '[]'::jsonb
+        );
+        """
+    )
+
+    # 2) si ancienne colonne 'pilote' existe, la renommer en 'porteur'
+    try:
+        cur.execute("ALTER TABLE tasks RENAME COLUMN pilote TO porteur;")
+    except Exception:
+        # soit la colonne n'existe pas, soit déjà renommée : on ignore
+        conn.rollback()
+
     conn.commit()
     cur.close()
     conn.close()
@@ -39,7 +47,7 @@ def init_db():
 
 init_db()
 
-# --- Pages ---
+# ============== Pages ==============
 pages = {
     "Transformation AGILE": "La méthode agile permet d'aller plus vite et plus loin",
     "Organisation et processus": "Orgchart, méthodes de travail, standardisation",
@@ -49,12 +57,26 @@ pages = {
     "Culture et communication": "Valeurs, rituels, reconnaissance",
 }
 
+# ============== Helpers JSON/Date ==============
+def to_iso(val):
+    """Convertit une date en ISO string si nécessaire."""
+    return val.isoformat() if isinstance(val, date) else (val or "")
 
+def parse_date_if_str(val):
+    """Parse une date ISO en date, sinon renvoie tel quel ou aujourd'hui si None."""
+    if isinstance(val, str) and val:
+        return date.fromisoformat(val)
+    if isinstance(val, date):
+        return val
+    return date.today()
+
+# ============== Lecture ==============
 def read_tasks_pg():
     conn = get_connection()
     cur = conn.cursor()
+    # On lit la colonne 'porteur' (après migration éventuelle)
     cur.execute(
-        "SELECT id, page, nom, avancement, pilote, date_debut, date_echeance, subtasks FROM tasks;"
+        "SELECT id, page, nom, avancement, porteur, date_debut, date_echeance, subtasks FROM tasks;"
     )
     rows = cur.fetchall()
     cur.close()
@@ -62,21 +84,38 @@ def read_tasks_pg():
 
     tasks_dict = {page: [] for page in pages.keys()}
     for r in rows:
-        subtasks = r[7] if r[7] else []  # PAS de json.loads, c'est déjà une list
-        # Conversion des dates dans les sous-tâches si besoin
-        for s in subtasks:
-            if isinstance(s.get("date_debut"), str):
-                s["date_debut"] = date.fromisoformat(s["date_debut"])
-            if isinstance(s.get("date_echeance"), str):
-                s["date_echeance"] = date.fromisoformat(s["date_echeance"])
+        # r[7] (subtasks) peut être déjà une list (JSONB), une str '[]', ou None
+        raw_subtasks = r[7]
+        if raw_subtasks is None:
+            subtasks = []
+        elif isinstance(raw_subtasks, str):
+            try:
+                subtasks = json.loads(raw_subtasks)
+            except Exception:
+                subtasks = []
+        else:
+            subtasks = raw_subtasks  # déjà list/dict
 
-        tasks_dict[r[1]].append(
+        # Normaliser le contenu des sous-tâches (dates -> date)
+        for s in subtasks:
+            s["date_debut"] = parse_date_if_str(s.get("date_debut"))
+            s["date_echeance"] = parse_date_if_str(s.get("date_echeance"))
+            # Champs manquants
+            s.setdefault("nom", "")
+            s.setdefault("avancement", 0)
+            s.setdefault("porteur", "")
+
+        page_name = r[1]
+        if page_name not in tasks_dict:
+            tasks_dict[page_name] = []  # au cas où une page inconnue apparaît
+
+        tasks_dict[page_name].append(
             {
                 "id": str(r[0]),
                 "page": r[1],
                 "nom": r[2],
                 "avancement": r[3],
-                "pilote": r[4],
+                "porteur": r[4],
                 "date_debut": r[5],
                 "date_echeance": r[6],
                 "subtasks": subtasks,
@@ -84,41 +123,60 @@ def read_tasks_pg():
         )
     return tasks_dict
 
-
-# --- Écrire les tâches dans PostgreSQL ---
+# ============== Écriture ==============
 def write_tasks_pg(tasks_dict):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM tasks;")  # On réécrit tout
+
+    # On réécrit tout (simple et efficace pour un POC)
+    cur.execute("DELETE FROM tasks;")
+
     for page, tasks in tasks_dict.items():
         for t in tasks:
-            if "id" not in t:
+            # id
+            if "id" not in t or not t["id"]:
                 t["id"] = str(uuid.uuid4())
 
-            # Convertir les dates des subtasks en string
+            # porteur (sécuriser si la clé n'existe pas)
+            porteur = t.get("porteur", "")
+            if not porteur:
+                # fallback : premier porteur connu si dispo, sinon vide
+                porteur = (st.session_state.porteurs[0] if "porteurs" in st.session_state and st.session_state.porteurs else "")
+
+            # dates haut-niveau (psycopg2 gère les date -> DATE)
+            dd = parse_date_if_str(t.get("date_debut"))
+            de = parse_date_if_str(t.get("date_echeance"))
+
+            # sérialiser les sous-tâches pour JSONB
             subtasks_serializable = []
             for s in t.get("subtasks", []):
-                s_copy = s.copy()
-                s_copy["date_debut"] = s_copy["date_debut"].isoformat()
-                s_copy["date_echeance"] = s_copy["date_echeance"].isoformat()
-                subtasks_serializable.append(s_copy)
+                subtasks_serializable.append(
+                    {
+                        "nom": s.get("nom", ""),
+                        "avancement": int(s.get("avancement", 0)),
+                        "porteur": s.get("porteur", ""),
+                        "date_debut": to_iso(parse_date_if_str(s.get("date_debut"))),
+                        "date_echeance": to_iso(parse_date_if_str(s.get("date_echeance"))),
+                    }
+                )
 
             cur.execute(
                 """
-                INSERT INTO tasks (id, page, nom, avancement, pilote, date_debut, date_echeance, subtasks)
+                INSERT INTO tasks (id, page, nom, avancement, porteur, date_debut, date_echeance, subtasks)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """,
+                """,
                 (
                     t["id"],
                     page,
                     t["nom"],
-                    t.get("avancement", 0),
-                    t["pilote"],
-                    t["date_debut"],
-                    t["date_echeance"],
+                    int(t.get("avancement", 0)),
+                    porteur,
+                    dd,
+                    de,
                     json.dumps(subtasks_serializable),
                 ),
             )
+
     conn.commit()
     cur.close()
     conn.close()
