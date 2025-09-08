@@ -214,12 +214,25 @@ def bloc_progression(page_name, icon, title, caption):
 
 
 def render_progress(avancement, key):
-    fig = px.pie(values=[avancement, 100 - avancement], hole=0.6)
-    fig.update_traces(marker_colors=["#4CAF50", "#E0E0E0"], textinfo="none")
-    fig.update_layout(
-        margin=dict(t=0, b=0, l=0, r=0), width=50, height=50, showlegend=False
+    fig = px.pie(
+        values=[avancement, 100 - avancement],
+        hole=0.6
     )
-    st.plotly_chart(fig, key=key)
+    fig.update_traces(
+        marker_colors=["#4CAF50", "#E0E0E0"],
+        textinfo="none"
+    )
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0),
+        width=120,   # taille augmentée
+        height=120,  # taille augmentée
+        showlegend=False
+    )
+
+    # Centrage du graphique
+    st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+    st.plotly_chart(fig, key=key, use_container_width=False)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def task_avancement(tache):
@@ -248,7 +261,7 @@ def render_task(tache, selection, idx):
             )
         # Avancement
         with col2:
-            col_input, col_chart = st.columns([2, 1])
+            col_input, col_chart = st.columns([3, 2])
             with col_input:
                 if not tache["subtasks"]:
                     tache["avancement"] = st.number_input(
@@ -326,7 +339,7 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
             "Sous-tâche", sub["nom"], key=f"sub_nom_{selection}_{idx}_{sub_idx}"
         )
     with col2:
-        col_input, col_chart = st.columns([2, 1])
+        col_input, col_chart = st.columns([3, 2])
         with col_input:
             sub["avancement"] = st.number_input(
                 "",
