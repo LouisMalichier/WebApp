@@ -281,35 +281,31 @@ def render_task(tache, selection, idx):
     expander_label = f"{tache['nom']} | Avancement: {avancement}% | Porteur: {porteur} | Début: {min_date} | Échéance: {max_date}"
 
     with st.expander(expander_label):
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 1, 1, 1, 1, 1])
+        col1, col2, col3, col4, col5, col6 = st.columns([3, 3, 1, 1, 1, 1])
         # Nom
         with col1:
             tache["nom"] = st.text_input(
                 "Tâche", tache["nom"], key=f"nom_{selection}_{idx}"
             )
         # Avancement
-    with col2:
-        col_input, col_chart = st.columns([2, 3])  # plus de place au camembert
-        with col_input:
-            if not tache["subtasks"]:
-                tache["avancement"] = st.number_input(
-                    "",
-                    min_value=0,
-                    max_value=100,
-                    value=tache.get("avancement", 0),
-                    step=1,
-                    key=f"av_{selection}_{idx}",
+        with col2:
+            col_input, col_chart = st.columns([2, 1])
+            with col_input:
+                if not tache["subtasks"]:
+                    tache["avancement"] = st.number_input(
+                        "",
+                        min_value=0,
+                        max_value=100,
+                        value=tache.get("avancement", 0),
+                        step=1,
+                        key=f"av_{selection}_{idx}",
+                    )
+                else:
+                    tache["avancement"] = task_avancement(tache)
+            with col_chart:
+                render_progress(
+                    tache["avancement"], key=f"progress_task_{selection}_{idx}"
                 )
-            else:
-                tache["avancement"] = task_avancement(tache)
-        with col_chart:
-            st.markdown(
-                "<div style='display:flex; justify-content:center;'>",
-                unsafe_allow_html=True,
-            )
-            render_progress(tache["avancement"], key=f"progress_task_{selection}_{idx}")
-            st.markdown("</div>", unsafe_allow_html=True)
-
         # Porteur
         with col3:
             current_porteur = tache["porteur"]
@@ -382,14 +378,9 @@ def render_subtask(tache, sub, selection, idx, sub_idx):
                 key=f"sub_av_{selection}_{idx}_{sub_idx}",
             )
         with col_chart:
-            st.markdown(
-                "<div style='display:flex; justify-content:center;'>",
-                unsafe_allow_html=True,
-            )
             render_progress(
                 sub["avancement"], key=f"progress_subtask_{selection}_{idx}_{sub_idx}"
             )
-            st.markdown("</div>", unsafe_allow_html=True)
     with col3:
         choix = st.selectbox(
             "Porteur",
