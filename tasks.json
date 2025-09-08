@@ -3,22 +3,22 @@
   "Organisation et processus": [
     {
       "nom": "TestTache",
-      "avancement": 39,
-      "porteur": "DSI",
+      "avancement": 94,
+      "porteur": "DATA",
       "date_debut": "2025-09-05",
       "date_echeance": "2025-09-05",
       "subtasks": [
         {
           "nom": "TestSousTache1",
-          "avancement": 33,
-          "porteur": "DSI",
+          "avancement": 100,
+          "porteur": "DS",
           "date_debut": "2025-09-05",
-          "date_echeance": "2025-09-05"
+          "date_echeance": "2025-09-25"
         },
         {
           "nom": "TestSousTache2",
-          "avancement": 45,
-          "porteur": "DSI",
+          "avancement": 88,
+          "porteur": "DS",
           "date_debut": "2025-09-05",
           "date_echeance": "2025-09-05"
         }
@@ -26,7 +26,24 @@
     }
   ],
   "Enableur technologiques": [],
-  "Budget & Mesure": [],
+  "Budget & Mesure": [
+    {
+      "nom": "k",
+      "avancement": 18,
+      "porteur": "DSI",
+      "date_debut": "2025-09-05",
+      "date_echeance": "2025-09-05",
+      "subtasks": [
+        {
+          "nom": "k,ml",
+          "avancement": 18,
+          "porteur": "DSI",
+          "date_debut": "2025-09-05",
+          "date_echeance": "2025-09-05"
+        }
+      ]
+    }
+  ],
   "Leadership et talents": [],
   "Culture et communication": []
 }
