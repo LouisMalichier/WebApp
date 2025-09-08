@@ -19,19 +19,19 @@ def init_db():
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tasks (
-            id UUID PRIMARY KEY,
-            page TEXT NOT NULL,
-            nom TEXT NOT NULL,
-            avancement INT NOT NULL,
-            pilote TEXT NOT NULL,
-            date_debut DATE NOT NULL,
-            date_echeance DATE NOT NULL,
-            subtasks JSONB DEFAULT '[]'
-        );
     """
-    )
+    CREATE TABLE IF NOT EXISTS tasks (
+        id UUID PRIMARY KEY,
+        page TEXT NOT NULL,
+        nom TEXT NOT NULL,
+        avancement INT NOT NULL,
+        porteur TEXT NOT NULL,
+        date_debut DATE NOT NULL,
+        date_echeance DATE NOT NULL,
+        subtasks JSONB DEFAULT '[]'
+    );
+"""
+)
     conn.commit()
     cur.close()
     conn.close()
