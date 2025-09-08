@@ -224,8 +224,8 @@ def render_progress(avancement, key):
     )
     fig.update_layout(
         margin=dict(t=0, b=0, l=0, r=0),
-        width=120,   # taille augmentée
-        height=120,  # taille augmentée
+        width=50,   # taille augmentée
+        height=50,  # taille augmentée
         showlegend=False
     )
 
