@@ -447,7 +447,7 @@ def add_subtask(tache, selection, idx):
         "Date d'échéance", value=date.today(), key=f"new_sub_date_echeance_{idx}"
     )
     if st.button("Ajouter sous-tâche", key=f"add_sub_btn_{idx}") and name:
-        tache["subtasks"].insert(
+        tache["subtasks"].insert(0,
             {
                 "nom": name,
                 "avancement": av,
